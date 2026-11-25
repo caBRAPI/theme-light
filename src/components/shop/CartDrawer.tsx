@@ -257,8 +257,8 @@ export function CartDrawer({
                         <button
                           type="button"
                           disabled={
-                            product.stock !== null &&
-                            product.stock !== undefined &&
+                            typeof product.stock === "number" &&
+                            product.stock >= 0 &&
                             qty >= product.stock
                           }
                           onClick={() => onUpdateQty(product.id, 1)}

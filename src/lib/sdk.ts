@@ -17,6 +17,6 @@ export function getStoreId(): string {
   const raw =
     document.querySelector('meta[name="loja-id"]')?.getAttribute("content") ?? "";
   const id = raw.trim();
-  if (!id || id === "{{store_id}}" || id === "STORE_ID") return "";
+  if (!id || /^\{\{.*\}\}$/.test(id) || id === "STORE_ID") return "";
   return id;
 }

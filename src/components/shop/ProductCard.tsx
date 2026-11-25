@@ -27,9 +27,9 @@ export function ProductCard({
     currency: "BRL",
   }).format(product.price);
   const hasStockLimit =
-    product.stock !== null && product.stock !== undefined;
+    typeof product.stock === "number" && product.stock >= 0;
   const outOfStock =
-    hasStockLimit && (product.stock! <= 0 || inCartQty >= product.stock!);
+    hasStockLimit && (product.stock! === 0 || inCartQty >= product.stock!);
   const imageSrc =
     product.image ||
     `https://placehold.co/600x420/F0EDE8/9CA3AF?text=${encodeURIComponent(product.name)}`;

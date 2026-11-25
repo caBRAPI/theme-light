@@ -102,9 +102,13 @@ export default function App() {
   function handleBuy(productId: string) {
     const product = products.find((p) => p.id === productId);
     if (!product) return;
+    const hasStockLimit =
+      typeof product.stock === "number" && product.stock >= 0;
+    if (hasStockLimit && product.stock! === 0) return;
     setCartItems((prev) => {
       const existing = prev.find((item) => item.product.id === productId);
       if (existing) {
+        if (hasStockLimit && existing.qty >= product.stock!) return prev;
         return prev.map((item) =>
           item.product.id === productId ? { ...item, qty: item.qty + 1 } : item,
         );
@@ -120,7 +124,7 @@ export default function App() {
         const nextQty = Math.max(1, item.qty + delta);
         const maxStock = item.product.stock;
         const clampedQty =
-          maxStock !== null && maxStock !== undefined
+          typeof maxStock === "number" && maxStock >= 0
             ? Math.min(nextQty, Math.max(1, maxStock))
             : nextQty;
         return { ...item, qty: clampedQty };
@@ -140,16 +144,33 @@ export default function App() {
     try {
       const res = await sdk.coupons.getByCode(storeId, code);
       if (res?.status && res?.coupon?.code) {
-        const discount = Number(res.coupon.discount || 0);
-        setAppliedCoupon({ code: String(res.coupon.code), discount });
+        const coupon = res.coupon;
+        const isExpired =
+          Boolean(coupon.expiredAt) &&
+          new Date(coupon.expiredAt!).getTime() <= Date.now();
+        const isExhausted =
+          typeof coupon.useLimit === "number" && coupon.useLimit === 0;
+
+        if (isExpired) {
+          setAppliedCoupon(null);
+          return { ok: false, message: "Cupom expirado." };
+        }
+        if (isExhausted) {
+          setAppliedCoupon(null);
+          return { ok: false, message: "Limite de usos do cupom esgotado." };
+        }
+
+        const discount = Number(coupon.discount || 0);
+        setAppliedCoupon({ code: String(coupon.code), discount });
         return {
           ok: true,
-          message: `Cupom aplicado: ${String(res.coupon.code).toUpperCase()} (-${discount}%)`,
+          message: `Cupom aplicado: ${String(coupon.code).toUpperCase()} (-${discount}%)`,
         };
       }
       setAppliedCoupon(null);
       return { ok: false, message: "Cupom inválido ou expirado." };
     } catch {
+      setAppliedCoupon(null);
       return { ok: false, message: "Cupom inválido ou indisponível." };
     }
   }
